@@ -115,7 +115,7 @@ final class SeqUpdatesExtension(_system: ActorSystem) extends Extension {
     userId,
     UpdateMapping(
       default = default map serializedUpdate,
-      custom = custom mapValues serializedUpdate
+      customObsolete = custom mapValues serializedUpdate
     ),
     pushRules = pushRules,
     deliveryId = deliveryId
@@ -187,7 +187,7 @@ final class SeqUpdatesExtension(_system: ActorSystem) extends Extension {
     def run(updLeft: List[SeqUpdate], acc: DiffAcc, currSize: Long): (DiffAcc, Long, Boolean) = {
       updLeft match {
         case h :: t ⇒
-          val upd = h.getMapping.custom.getOrElse(authSid, h.getMapping.getDefault)
+          val upd = h.getMapping.customObsolete.getOrElse(authSid, h.getMapping.getDefault)
           val newSize = currSize + upd.body.size()
           if (newSize > maxSizeInBytes && acc.nonEmpty) {
             (acc, currSize, false)

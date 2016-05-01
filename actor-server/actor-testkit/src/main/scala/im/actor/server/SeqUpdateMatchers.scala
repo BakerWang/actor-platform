@@ -93,7 +93,7 @@ trait SeqUpdateMatchers extends Matchers with ScalaFutures with AnyRefLogSource 
     val updateHeader = extractHeader(update)
     whenReady(findSeqUpdateAfter(seq)) { updates ⇒
       val authSid = client.authData.get.authSid
-      if (updates.map(u ⇒ u.getMapping.custom.getOrElse(authSid, u.getMapping.getDefault).header)
+      if (updates.map(u ⇒ u.getMapping.customObsolete.getOrElse(authSid, u.getMapping.getDefault).header)
         .contains(updateHeader)) fail(s"There should be no update of type: ${update.getSimpleName}")
     }
   }
@@ -168,7 +168,7 @@ trait SeqUpdateMatchers extends Matchers with ScalaFutures with AnyRefLogSource 
         val authSid = client.authData.get.authSid
 
         val serUpdates = updates map { update ⇒
-          update.getMapping.custom.getOrElse(authSid, update.getMapping.getDefault)
+          update.getMapping.customObsolete.getOrElse(authSid, update.getMapping.getDefault)
         }
 
         check(serUpdates)

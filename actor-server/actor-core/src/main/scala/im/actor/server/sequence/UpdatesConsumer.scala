@@ -142,7 +142,7 @@ private[sequence] class UpdatesConsumer(userId: Int, authId: Long, authSid: Int,
       val pushRules = pushRulesOpt.getOrElse(PushRules())
 
       if (!pushRules.excludeAuthSids.contains(authSid)) {
-        val upd = seqUpd.getMapping.custom.getOrElse(authSid, seqUpd.getMapping.getDefault)
+        val upd = seqUpd.getMapping.customObsolete.getOrElse(authSid, seqUpd.getMapping.getDefault)
 
         val boxFuture =
           if (pushRules.isFat) {
