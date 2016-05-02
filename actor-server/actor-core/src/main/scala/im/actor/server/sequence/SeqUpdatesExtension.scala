@@ -17,6 +17,7 @@ import im.actor.server.model.push.{ PushCredentials, ActorPushCredentials ⇒ Ac
 import im.actor.server.persist.AuthSessionRepo
 import im.actor.server.persist.push.{ ActorPushCredentialsRepo, ApplePushCredentialsRepo, GooglePushCredentialsRepo }
 import im.actor.server.persist.sequence.UserSequenceRepo
+import im.actor.storage.SimpleStorage
 import scodec.bits.BitVector
 import slick.dbio.DBIO
 
@@ -24,6 +25,8 @@ import scala.annotation.tailrec
 import scala.collection.immutable
 import scala.concurrent.duration._
 import scala.concurrent.{ Future, Promise }
+
+object SeqStorage extends SimpleStorage("seqs")
 
 final class SeqUpdatesExtension(_system: ActorSystem) extends Extension {
 
@@ -37,6 +40,8 @@ final class SeqUpdatesExtension(_system: ActorSystem) extends Extension {
   lazy val region: SeqUpdatesManagerRegion = SeqUpdatesManagerRegion.start()(system)
   private val writer = system.actorOf(BatchUpdatesWriter.props, "batch-updates-writer")
   private val mediator = DistributedPubSub(system).mediator
+
+  DbExtension(system).connector.createSync(SeqStorage.name)
 
   def getSeqState(userId: Int): Future[SeqState] =
     (region.ref ? Envelope(userId).withGetSeqState(GetSeqState())).mapTo[SeqState]

@@ -4,7 +4,7 @@ import akka.actor._
 import akka.pattern.pipe
 import com.github.benmanes.caffeine.cache.Caffeine
 import com.google.protobuf.ByteString
-import com.google.protobuf.wrappers.StringValue
+import com.google.protobuf.wrappers.{ Int32Value, StringValue }
 import im.actor.server.db.DbExtension
 import im.actor.server.model.{ SeqUpdate, UpdateMapping }
 import im.actor.server.persist.sequence.UserSequenceRepo
@@ -17,24 +17,34 @@ import scala.util.{ Failure, Success }
 object UserSequence {
   def topic(userId: Int): String = s"sequence.$userId"
 
-  private final case class Initialized(seq: Int)
+  private final case class Initialized(commonSeq: Int, seqs: Map[Long, Int])
 
   private[sequence] def props =
     Props(new UserSequence)
 }
 
 private trait SeqControl {
-  private var seq: Int = 0
+  private var _commonSeq: Int = 0
 
-  protected def getSeq: Int = this.seq
+  protected def commonSeq = this._commonSeq
+  protected def commonSeq_=(seq: Int) = this._commonSeq = seq
 
-  protected def nextSeq(): Int = {
-    val nseq = this.seq + 1
-    this.seq = nseq
+  protected def nextCommonSeq(): Int = {
+    val nseq = this._commonSeq + 1
+    this._commonSeq = nseq
     nseq
   }
 
-  protected def setSeq(s: Int): Unit = this.seq = s
+  private var _seqMap: Map[Long, Int] = Map.empty
+
+  protected def seqMap = this._seqMap
+  protected def seqMap_=(map: Map[Long, Int]) = this._seqMap = map
+
+  protected def nextSeq(authId: Long) = {
+    val nextSeq = _seqMap.getOrElse(authId, 0)
+    this._seqMap += (authId -> nextSeq)
+    nextSeq
+  }
 }
 
 private[sequence] final class UserSequence extends Actor with ActorLogging with Stash with SeqControl {
@@ -45,6 +55,7 @@ private[sequence] final class UserSequence extends Actor with ActorLogging with 
   import context.dispatcher
 
   private val db = DbExtension(context.system).db
+  private val connector = DbExtension(context.system).connector
   private val seqUpdExt = SeqUpdatesExtension(context.system)
   private val pubSubExt = PubSubExtension(context.system)
 
@@ -57,8 +68,9 @@ private[sequence] final class UserSequence extends Actor with ActorLogging with 
   init()
 
   def receive = {
-    case Initialized(initSeq) ⇒
-      setSeq(initSeq)
+    case Initialized(commonSeq, seqs) ⇒
+      this.commonSeq = commonSeq
+      this.seqMap = seqs
       unstashAll()
       context become initialized
     case Status.Failure(e) ⇒
@@ -72,17 +84,18 @@ private[sequence] final class UserSequence extends Actor with ActorLogging with 
     case DeliverUpdate(mappingOpt, pushRules, reduceKey, deliveryId) ⇒
       mappingOpt match {
         case Some(mapping) ⇒ deliver(mapping, pushRules, reduceKey, deliveryId)
-        case None ⇒
-          log.error("Empty mapping")
+        case None ⇒ log.error("Empty mapping")
       }
-    case GetSeqState() ⇒
-      sender() ! SeqState(getSeq)
+    case GetSeqState(authId) ⇒
+      val seq = seqMap getOrElse (authId, 0)
+      sender() ! SeqState(seq)
   }
 
   private def init(): Unit =
-    db.run(for {
-      seq ← UserSequenceRepo.fetchSeq(userId) map (_ getOrElse 0)
-    } yield Initialized(seq)) pipeTo self
+    (for {
+      seqs <- connector.run(SeqStorage.getPairs(Some(userId.toString))) map (_.toMap map { case (key, value) => key.toLong -> Int32Value.parseFrom(value).value })
+      commonSeq ← db.run(UserSequenceRepo.fetchSeq(userId) map (_ getOrElse 0)
+    } yield Initialized(commonSeq, seqs)) pipeTo self
 
   private def deliver(mapping: UpdateMapping, pushRules: Option[PushRules], reduceKey: Option[StringValue], deliveryId: String): Unit = {
     cached(deliveryId) {

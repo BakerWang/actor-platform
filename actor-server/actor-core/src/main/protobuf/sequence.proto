@@ -12,6 +12,10 @@ import "google/protobuf/wrappers.proto";
 import "model/push.proto";
 import "model.proto";
 
+message State {
+    int64 timestamp = 1;
+}
+
 message PushData {
     string text = 1;
     string censoredText = 3;
@@ -58,7 +62,9 @@ message UserSequenceCommands {
         string delivery_id = 2;
     }
 
-    message GetSeqState {}
+    message GetSeqState {
+        int64 auth_id = 1;
+    }
 
     message RegisterPushCredentials {
         option (scalapb.message).extends = "im.actor.server.sequence.VendorPushCommand";
