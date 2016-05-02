@@ -3,16 +3,17 @@ package im.actor.server.api.rpc.service
 import com.google.protobuf.CodedInputStream
 import com.typesafe.config.ConfigFactory
 import im.actor.api.rpc._
+import im.actor.api.rpc.contacts.UpdateContactsAdded
 import im.actor.api.rpc.messaging.{ ApiTextMessage, UpdateMessageContentChanged }
 import im.actor.api.rpc.misc.ResponseSeq
 import im.actor.api.rpc.peers.{ ApiPeer, ApiPeerType }
-import im.actor.api.rpc.sequence.{ ApiUpdateContainer, ResponseGetDifference }
+import im.actor.api.rpc.sequence.{ ApiUpdateContainer, ResponseGetDifference, UpdateEmptyUpdate }
 import im.actor.server._
 import im.actor.server.api.rpc.service.sequence.SequenceServiceConfig
 import im.actor.server.sequence.SeqUpdatesExtension
 
 import scala.concurrent.duration._
-import scala.concurrent.{ Future, Await }
+import scala.concurrent.{ Await, Future }
 
 final class SequenceServiceSpec extends BaseAppSuite({
   ActorSpecification.createSystem(
@@ -29,6 +30,7 @@ final class SequenceServiceSpec extends BaseAppSuite({
   it should "get state" in getState
   it should "get difference" in getDifference
   it should "not produce empty difference if there is one update bigger than difference size limit" in bigUpdate
+  it should "map updates correctly" in mapUpdates
 
   private val config = SequenceServiceConfig.load().get
   private lazy val seqUpdExt = SeqUpdatesExtension(system)
@@ -166,6 +168,40 @@ final class SequenceServiceSpec extends BaseAppSuite({
       inside(res) {
         case Ok(ResponseGetDifference(_, _, _, updates, false, _, _, _, _)) ⇒
           updates.size shouldEqual 1
+      }
+    }
+  }
+
+  def mapUpdates() = {
+    val (user, authId1, authSid1, _) = createUser()
+    val (authId2, authSid2) = createAuthId(user.id)
+
+    val clientData1 = ClientData(authId1, 1L, Some(AuthData(user.id, authSid1, 42)))
+    val clientData2 = ClientData(authId2, 2L, Some(AuthData(user.id, authSid2, 42)))
+
+    whenReady(seqUpdExt.deliverMappedUpdate(
+      userId = user.id,
+      default = Some(UpdateEmptyUpdate),
+      custom = Map(authId2 → UpdateContactsAdded(Vector(1)))
+    ))(identity)
+
+    {
+      implicit val clientData = clientData1
+      whenReady(service.handleGetDifference(0, Array.empty, Vector.empty)) { res ⇒
+        inside(res) {
+          case Ok(rsp: ResponseGetDifference) ⇒
+            rsp.updates.head.updateHeader should be(UpdateEmptyUpdate.header)
+        }
+      }
+    }
+
+    {
+      implicit val clientData = clientData2
+      whenReady(service.handleGetDifference(0, Array.empty, Vector.empty)) { res ⇒
+        inside(res) {
+          case Ok(rsp: ResponseGetDifference) ⇒
+            rsp.updates.head.updateHeader should be(UpdateContactsAdded.header)
+        }
       }
     }
   }

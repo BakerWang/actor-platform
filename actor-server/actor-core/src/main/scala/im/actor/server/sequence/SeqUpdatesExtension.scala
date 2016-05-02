@@ -211,14 +211,7 @@ final class SeqUpdatesExtension(_system: ActorSystem) extends Extension {
     def run(updLeft: List[SeqUpdate], acc: DiffAcc, currSize: Long): (DiffAcc, Long, Boolean) = {
       updLeft match {
         case h :: t ⇒
-          val upd =
-            h.getMapping.custom.getOrElse(
-              authId,
-              h.getMapping.customObsolete.getOrElse(
-                authSid,
-                h.getMapping.getDefault
-              )
-            )
+          val upd = getUpdate(h.getMapping, authId, authSid)
 
           val newSize = currSize + upd.body.size()
           if (newSize > maxSizeInBytes && acc.nonEmpty) {
@@ -237,6 +230,15 @@ final class SeqUpdatesExtension(_system: ActorSystem) extends Extension {
     }
     run(updates, updateAcc, currentSize)
   }
+
+  def getUpdate(mapping: UpdateMapping, authId: Long, authSid: Int) =
+    mapping.custom.getOrElse(
+      authId,
+      mapping.customObsolete.getOrElse(
+        authSid,
+        mapping.getDefault
+      )
+    )
 
   private def buildDeliver(mapping: UpdateMapping, pushRules: PushRules, reduceKey: Option[String], deliveryId: String): DeliverUpdate =
     DeliverUpdate(

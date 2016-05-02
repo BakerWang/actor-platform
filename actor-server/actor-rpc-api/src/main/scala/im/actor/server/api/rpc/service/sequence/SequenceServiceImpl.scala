@@ -172,7 +172,7 @@ final class SequenceServiceImpl(config: SequenceServiceConfig)(
   private def extractDiff(updates: IndexedSeq[SeqUpdate])(implicit client: AuthorizedClientData): (IndexedSeq[ApiUpdateContainer], Set[Int], Set[Int]) = {
     updates.foldLeft[(Vector[ApiUpdateContainer], Set[Int], Set[Int])](Vector.empty, Set.empty, Set.empty) {
       case ((updates, userIds, groupIds), update) ⇒
-        val upd = update.getMapping.customObsolete.getOrElse(client.authSid, update.getMapping.getDefault)
+        val upd = seqUpdExt.getUpdate(update.getMapping, client.authId, client.authSid)
 
         (updates :+ ApiUpdateContainer(upd.header, upd.body.toByteArray),
           userIds ++ upd.userIds,
