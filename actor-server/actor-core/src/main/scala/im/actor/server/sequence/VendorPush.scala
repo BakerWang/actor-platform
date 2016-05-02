@@ -18,7 +18,7 @@ import scala.util.control.NoStackTrace
 
 private[sequence] trait VendorPushCommand
 
-private final case class PushCredentialsInfo(appId: Int, authSid: Int)
+private final case class PushCredentialsInfo(appId: Int, authId: Long)
 
 private final case class AllNotificationSettings(
   generic:  NotificationSettings              = NotificationSettings(),
@@ -196,7 +196,7 @@ private[sequence] final class VendorPush(userId: Int) extends Actor with ActorLo
   private def deliver(seq: Int, rules: PushRules, creds: PushCredentials, info: PushCredentialsInfo): Unit = {
     val deviceType = DeviceType(info.appId)
 
-    if (rules.excludeAuthSids.contains(info.authSid)) {
+    if (rules.excludeAuthIds.contains(info.authId)) {
       log.debug("AuthSid is excluded, not pushing")
     } else {
       rules.data match {
@@ -308,7 +308,7 @@ private[sequence] final class VendorPush(userId: Int) extends Actor with ActorLo
   private def withInfo(c: PushCredentials): DBIO[Option[(PushCredentials, PushCredentialsInfo)]] =
     for {
       authSessionOpt ← AuthSessionRepo.findByAuthId(c.authId)
-    } yield authSessionOpt map (s ⇒ c → PushCredentialsInfo(s.appId, s.id))
+    } yield authSessionOpt map (s ⇒ c → PushCredentialsInfo(s.appId, c.authId))
 
   private def remove(creds: PushCredentials): Unit =
     mapping -= creds

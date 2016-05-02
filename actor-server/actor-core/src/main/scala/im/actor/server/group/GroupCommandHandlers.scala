@@ -62,7 +62,7 @@ private[group] trait GroupCommandHandlers extends GroupsImplicits with GroupComm
     }
   }
 
-  protected def create(groupId: Int, typ: GroupType, creatorUserId: Int, creatorAuthSid: Int, title: String, randomId: Long, userIds: Set[Int]): Unit = {
+  protected def create(groupId: Int, typ: GroupType, creatorUserId: Int, creatorAuthId: Long, title: String, randomId: Long, userIds: Set[Int]): Unit = {
     val accessHash = genAccessHash()
 
     val rng = ThreadLocalSecureRandom.current()
@@ -123,7 +123,7 @@ private[group] trait GroupCommandHandlers extends GroupsImplicits with GroupComm
           else DBIO.from(seqUpdExt.deliverSingleUpdate(
             userId = creatorUserId,
             update = update,
-            pushRules = PushRules(isFat = true, excludeAuthSids = Seq(creatorAuthSid)),
+            pushRules = PushRules(isFat = true, excludeAuthIds = Seq(creatorAuthId)),
             reduceKey = None,
             deliveryId = s"creategroup_${groupId}_$randomId"
           ))
@@ -180,7 +180,7 @@ private[group] trait GroupCommandHandlers extends GroupsImplicits with GroupComm
     }
   }
 
-  protected def setJoined(group: GroupState, joiningUserId: Int, joinintUserAuthSid: Int, invitingUserId: Int): Unit = {
+  protected def setJoined(group: GroupState, joiningUserId: Int, joiningUserAuthId: Long, invitingUserId: Int): Unit = {
     if (!hasMember(group, joiningUserId) || isInvited(group, joiningUserId)) {
       val replyTo = sender()
 
@@ -200,8 +200,7 @@ private[group] trait GroupCommandHandlers extends GroupsImplicits with GroupComm
                 seqstatedate ← DBIO.from(DialogExtension(system).sendMessage(
                   peer = ApiPeer(ApiPeerType.Group, groupId),
                   senderUserId = joiningUserId,
-                  senderAuthSid = joinintUserAuthSid,
-                  senderAuthId = None,
+                  senderAuthId = Some(joiningUserAuthId),
                   randomId = randomId,
                   message = GroupServiceMessages.userJoined,
                   isFat = true
@@ -218,7 +217,7 @@ private[group] trait GroupCommandHandlers extends GroupsImplicits with GroupComm
     }
   }
 
-  protected def kick(group: GroupState, kickedUserId: Int, kickerUserId: Int, kickerAuthSid: Int, randomId: Long): Unit = {
+  protected def kick(group: GroupState, kickedUserId: Int, kickerUserId: Int, kickerAuthId: Long, randomId: Long): Unit = {
     val replyTo = sender()
     val date = Instant.now()
 
@@ -232,7 +231,7 @@ private[group] trait GroupCommandHandlers extends GroupsImplicits with GroupComm
         initiatorId = kickerUserId,
         userId = kickedUserId,
         group.members.keySet,
-        kickerAuthSid,
+        kickerAuthId,
         serviceMessage,
         update,
         date,
@@ -241,7 +240,7 @@ private[group] trait GroupCommandHandlers extends GroupsImplicits with GroupComm
     }
   }
 
-  protected def leave(group: GroupState, userId: Int, authSid: Int, randomId: Long): Unit = {
+  protected def leave(group: GroupState, userId: Int, authId: Long, randomId: Long): Unit = {
     val replyTo = sender()
 
     persist(GroupEvents.UserLeft(now(), userId)) { evt ⇒
@@ -253,7 +252,7 @@ private[group] trait GroupCommandHandlers extends GroupsImplicits with GroupComm
         initiatorId = userId,
         userId = userId,
         group.members.keySet,
-        authSid,
+        authId,
         serviceMessage,
         update,
         evt.ts,
@@ -430,14 +429,14 @@ private[group] trait GroupCommandHandlers extends GroupsImplicits with GroupComm
     }
   }
 
-  private def removeUser(initiatorId: Int, userId: Int, memberIds: Set[Int], clientAuthSid: Int, serviceMessage: ApiServiceMessage, update: Update, date: Instant, randomId: Long): DBIO[SeqStateDate] = {
+  private def removeUser(initiatorId: Int, userId: Int, memberIds: Set[Int], clientAuthId: Long, serviceMessage: ApiServiceMessage, update: Update, date: Instant, randomId: Long): DBIO[SeqStateDate] = {
     val groupPeer = Peer(PeerType.Group, groupId)
     for {
       _ ← GroupUserRepo.delete(groupId, userId)
       _ ← GroupInviteTokenRepo.revoke(groupId, userId)
       (SeqState(seq, state), _) ← DBIO.from(userExt.broadcastClientAndUsersUpdate(
         clientUserId = initiatorId,
-        clientAuthSid = clientAuthSid,
+        clientAuthId = clientAuthId,
         userIds = memberIds,
         update = update,
         pushText = Some(PushTexts.Left),

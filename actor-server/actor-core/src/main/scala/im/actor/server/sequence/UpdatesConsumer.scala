@@ -51,11 +51,11 @@ object UpdatesConsumerMessage {
 }
 
 object UpdatesConsumer {
-  def props(userId: Int, authId: Long, authSid: Int, session: ActorRef) =
-    Props(classOf[UpdatesConsumer], userId, authId, authSid, session)
+  def props(userId: Int, authId: Long, session: ActorRef) =
+    Props(classOf[UpdatesConsumer], userId, authId, session)
 }
 
-private[sequence] class UpdatesConsumer(userId: Int, authId: Long, authSid: Int, subscriber: ActorRef) extends Actor with ActorLogging with Stash {
+private[sequence] class UpdatesConsumer(userId: Int, authId: Long, subscriber: ActorRef) extends Actor with ActorLogging with Stash {
 
   import Presences._
   import UpdatesConsumerMessage._
@@ -141,8 +141,8 @@ private[sequence] class UpdatesConsumer(userId: Int, authId: Long, authSid: Int,
     case UserSequenceEvents.NewUpdate(Some(seqUpd), pushRulesOpt, reduceKey, state) ⇒
       val pushRules = pushRulesOpt.getOrElse(PushRules())
 
-      if (!pushRules.excludeAuthSids.contains(authSid)) {
-        val upd = seqUpd.getMapping.customObsolete.getOrElse(authSid, seqUpd.getMapping.getDefault)
+      if (!pushRules.excludeAuthIds.contains(authId)) {
+        val upd = seqUpd.getMapping.custom.getOrElse(authId, seqUpd.getMapping.getDefault)
 
         val boxFuture =
           if (pushRules.isFat) {

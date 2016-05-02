@@ -19,7 +19,7 @@ message PushData {
 }
 
 message PushRules {
-    repeated int32 exclude_auth_sids = 1;
+    repeated int64 exclude_auth_ids = 1;
     bool is_fat = 3;
     PushData data = 2;
 }

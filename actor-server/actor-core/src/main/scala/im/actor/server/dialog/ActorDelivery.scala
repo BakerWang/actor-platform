@@ -72,13 +72,13 @@ final class ActorDelivery()(implicit val system: ActorSystem)
   }
 
   override def senderDelivery(
-    senderUserId:  Int,
-    senderAuthSid: Int,
-    peer:          Peer,
-    randomId:      Long,
-    timestamp:     Long,
-    message:       ApiMessage,
-    isFat:         Boolean
+    senderUserId: Int,
+    senderAuthId: Option[Long],
+    peer:         Peer,
+    randomId:     Long,
+    timestamp:    Long,
+    message:      ApiMessage,
+    isFat:        Boolean
   ): Future[SeqState] = {
     val apiPeer = peer.asStruct
     val senderUpdate = UpdateMessage(
@@ -96,8 +96,8 @@ final class ActorDelivery()(implicit val system: ActorSystem)
     seqUpdatesExt.deliverMappedUpdate(
       userId = senderUserId,
       default = Some(senderUpdate),
-      custom = Map(senderAuthSid → senderClientUpdate),
-      pushRules = PushRules(isFat = isFat, excludeAuthSids = Seq(senderAuthSid)),
+      custom = senderAuthId map (authId ⇒ Map(authId → senderClientUpdate)) getOrElse Map.empty,
+      pushRules = PushRules(isFat = isFat, excludeAuthIds = senderAuthId map (authId ⇒ Seq(authId)) getOrElse Seq.empty),
       deliveryId = s"msg_${peer.toString}_$randomId"
     )
   }
@@ -123,7 +123,7 @@ final class ActorDelivery()(implicit val system: ActorSystem)
     ) map (_ ⇒ ())
   }
 
-  override def read(readerUserId: Int, readerAuthSid: Int, peer: Peer, date: Long, unreadCount: Int): Future[Unit] =
+  override def read(readerUserId: Int, readerAuthId: Long, peer: Peer, date: Long, unreadCount: Int): Future[Unit] =
     for {
       _ ← seqUpdatesExt.deliverSingleUpdate(
         userId = readerUserId,

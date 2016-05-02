@@ -44,8 +44,12 @@ final class SeqUpdatesExtension(_system: ActorSystem) extends Extension {
   def deliverUpdate(
     userId:  Int,
     deliver: DeliverUpdate
-  ): Future[SeqState] =
+  ): Future[SeqState] = {
+    val isUpdateDefined =
+      deliver.getMapping.default.isDefined || deliver.getMapping.custom.nonEmpty
+    require(isUpdateDefined, "No default update nor authId-specific")
     (region.ref ? Envelope(userId).withDeliverUpdate(deliver)).mapTo[SeqState]
+  }
 
   def deliverUpdate(
     userId:     Int,
@@ -108,6 +112,23 @@ final class SeqUpdatesExtension(_system: ActorSystem) extends Extension {
   def deliverMappedUpdate(
     userId:     Int,
     default:    Option[Update],
+    custom:     Map[Long, Update],
+    pushRules:  PushRules         = PushRules(),
+    deliveryId: String            = ""
+  ): Future[SeqState] = deliverUpdate(
+    userId,
+    UpdateMapping(
+      default = default map serializedUpdate,
+      custom = custom mapValues serializedUpdate
+    ),
+    pushRules = pushRules,
+    deliveryId = deliveryId
+  )
+
+  /*
+  def deliverMappedUpdate(
+    userId:     Int,
+    default:    Option[Update],
     custom:     Map[Int, Update],
     pushRules:  PushRules        = PushRules(),
     deliveryId: String           = ""
@@ -115,12 +136,13 @@ final class SeqUpdatesExtension(_system: ActorSystem) extends Extension {
     userId,
     UpdateMapping(
       default = default map serializedUpdate,
-      customObsolete = custom mapValues serializedUpdate
+      custom = custom mapValues serializedUpdate
     ),
     pushRules = pushRules,
     deliveryId = deliveryId
-  )
+  )*/
 
+  /*
   def deliverAuthIdMappedUpdate(
     userId:     Int,
     default:    Option[Update],
@@ -138,6 +160,7 @@ final class SeqUpdatesExtension(_system: ActorSystem) extends Extension {
         deliveryId
       )
     } yield res
+    */
 
   val DiffStep = 100L
 
@@ -153,13 +176,13 @@ final class SeqUpdatesExtension(_system: ActorSystem) extends Extension {
     lazy val toVector = (generic ++ reduced.values).values.toVector
   }
 
-  def getDifference(userId: Int, seq: Int, authSid: Int, maxSizeInBytes: Long): Future[(IndexedSeq[SeqUpdate], Boolean)] = {
+  def getDifference(userId: Int, seq: Int, authId: Long, authSid: Int, maxSizeInBytes: Long): Future[(IndexedSeq[SeqUpdate], Boolean)] = {
     def run(seq: Int, acc: DiffAcc, currentSize: Long): DBIO[(DiffAcc, Boolean)] = {
       UserSequenceRepo.fetchAfterSeq(userId, seq, DiffStep).flatMap { updates ⇒
         if (updates.isEmpty) {
           DBIO.successful(acc → false)
         } else {
-          val (newAcc, newSize, allFit) = append(updates.toList, currentSize, maxSizeInBytes, acc, authSid)
+          val (newAcc, newSize, allFit) = append(updates.toList, currentSize, maxSizeInBytes, acc, authId, authSid)
           if (allFit) {
             newAcc.toVector.lastOption match {
               case Some(u) ⇒ run(u.seq, newAcc, newSize)
@@ -181,13 +204,22 @@ final class SeqUpdatesExtension(_system: ActorSystem) extends Extension {
     currentSize:    Long,
     maxSizeInBytes: Long,
     updateAcc:      DiffAcc,
+    authId:         Long,
     authSid:        Int
   ): (DiffAcc, Long, Boolean) = {
     @tailrec
     def run(updLeft: List[SeqUpdate], acc: DiffAcc, currSize: Long): (DiffAcc, Long, Boolean) = {
       updLeft match {
         case h :: t ⇒
-          val upd = h.getMapping.customObsolete.getOrElse(authSid, h.getMapping.getDefault)
+          val upd =
+            h.getMapping.custom.getOrElse(
+              authId,
+              h.getMapping.customObsolete.getOrElse(
+                authSid,
+                h.getMapping.getDefault
+              )
+            )
+
           val newSize = currSize + upd.body.size()
           if (newSize > maxSizeInBytes && acc.nonEmpty) {
             (acc, currSize, false)

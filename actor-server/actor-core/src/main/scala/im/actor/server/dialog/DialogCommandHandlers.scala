@@ -44,7 +44,7 @@ trait DialogCommandHandlers extends PeersImplicits with UserAcl {
     }: Receive) orElse reactions, discardOld = true)
 
     withValidAccessHash(sm.getDest, sm.senderAuthId map (_.value), sm.accessHash map (_.value)) {
-      withCachedFuture[AuthSidRandomId, SeqStateDate](sm.senderAuthSid → sm.randomId) {
+      withCachedFuture[java.lang.Long, SeqStateDate](sm.randomId) {
         val sendDate = calcSendDate
         val message = sm.message
         PubSubExtension(system).publish(PeerMessage(sm.getOrigin, sm.getDest, sm.randomId, sendDate, message))
@@ -54,11 +54,11 @@ trait DialogCommandHandlers extends PeersImplicits with UserAcl {
           _ ← dialogExt.ackSendMessage(peer, sm.copy(date = Some(Int64Value(sendDate))))
           _ ← db.run(writeHistoryMessage(selfPeer, peer, new DateTime(sendDate), sm.randomId, message.header, message.toByteArray))
           //_ = dialogExt.updateCounters(peer, userId)
-          SeqState(seq, state) ← deliveryExt.senderDelivery(userId, sm.senderAuthSid, peer, sm.randomId, sendDate, message, sm.isFat)
+          SeqState(seq, state) ← deliveryExt.senderDelivery(userId, sm.senderAuthId map (_.value), peer, sm.randomId, sendDate, message, sm.isFat)
         } yield SeqStateDate(seq, state, sendDate),
           failed = for {
           _ ← db.run(writeHistoryMessageSelf(userId, peer, userId, new DateTime(sendDate), sm.randomId, message.header, message.toByteArray))
-          SeqState(seq, state) ← deliveryExt.senderDelivery(userId, sm.senderAuthSid, peer, sm.randomId, sendDate, message, sm.isFat)
+          SeqState(seq, state) ← deliveryExt.senderDelivery(userId, sm.senderAuthId map (_.value), peer, sm.randomId, sendDate, message, sm.isFat)
         } yield SeqStateDate(seq, state, sendDate)
         )
       }
@@ -138,7 +138,7 @@ trait DialogCommandHandlers extends PeersImplicits with UserAcl {
 
         (for {
           _ ← dialogExt.ackMessageRead(peer, mr)
-          _ ← deliveryExt.read(userId, mr.readerAuthSid, peer, mr.date, state.counter)
+          _ ← deliveryExt.read(userId, mr.readerAuthId, peer, mr.date, state.counter)
           _ = deliveryExt.sendCountersUpdate(userId)
         } yield MessageReadAck()) pipeTo sender()
       }

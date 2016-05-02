@@ -258,7 +258,6 @@ private final class WebrtcCallActor extends StashingActor with ActorLogging with
           peer = ApiPeer(ApiPeerType.Private, (memberUserIds - userId).head),
           senderUserId = callerUserId,
           senderAuthId = None,
-          senderAuthSid = 0,
           randomId = randomId,
           message = smsg
         ))
@@ -266,7 +265,6 @@ private final class WebrtcCallActor extends StashingActor with ActorLogging with
           peer = peer.asStruct,
           senderUserId = callerUserId,
           senderAuthId = None,
-          senderAuthSid = 0,
           randomId = randomId,
           message = smsg
         )

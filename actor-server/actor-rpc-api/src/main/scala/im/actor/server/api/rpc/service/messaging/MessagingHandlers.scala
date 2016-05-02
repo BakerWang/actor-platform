@@ -49,7 +49,6 @@ private[messaging] trait MessagingHandlers extends PeersImplicits
         s ← fromFuture(dialogExt.sendMessage(
           peer = outPeer.asPeer,
           senderUserId = client.userId,
-          senderAuthSid = client.authSid,
           senderAuthId = Some(client.authId),
           randomId = randomId,
           message = message,

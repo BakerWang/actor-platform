@@ -40,7 +40,6 @@ private[bot] final class MessagingBotService(system: ActorSystem) extends BotSer
         SeqStateDate(_, _, date) ← dialogExt.sendMessage(
           peer = peer,
           senderUserId = botUserId,
-          senderAuthSid = botAuthSid,
           senderAuthId = Some(botAuthId),
           randomId = randomId,
           message = message,

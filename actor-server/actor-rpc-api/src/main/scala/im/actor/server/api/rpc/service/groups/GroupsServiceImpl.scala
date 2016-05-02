@@ -116,7 +116,7 @@ final class GroupsServiceImpl(groupInviteConfig: GroupInviteConfig)(implicit act
               res ← groupExt.create(
                 groupId,
                 client.userId,
-                client.authSid,
+                client.authId,
                 validTitle,
                 randomId,
                 userIds.toSet,
@@ -206,7 +206,7 @@ final class GroupsServiceImpl(groupInviteConfig: GroupInviteConfig)(implicit act
         val join = groupExt.joinGroup(
           groupId = group.id,
           joiningUserId = client.userId,
-          joiningUserAuthSid = client.authSid,
+          joiningUserAuthId = client.authId,
           invitingUserId = token.creatorId
         )
         for {
@@ -226,7 +226,7 @@ final class GroupsServiceImpl(groupInviteConfig: GroupInviteConfig)(implicit act
           case None ⇒
             val group = Group.fromFull(fullGroup)
             for {
-              (seqstatedate, userIds, randomId) ← DBIO.from(groupExt.joinGroup(group.id, client.userId, client.authSid, fullGroup.creatorUserId))
+              (seqstatedate, userIds, randomId) ← DBIO.from(groupExt.joinGroup(group.id, client.userId, client.authId, fullGroup.creatorUserId))
               userStructs ← DBIO.from(Future.sequence(userIds.map(userExt.getApiStruct(_, client.userId, client.authId))))
               groupStruct ← DBIO.from(groupExt.getApiStruct(group.id, client.userId))
             } yield Ok(ResponseEnterGroup(groupStruct, userStructs.toVector, randomId, seqstatedate.seq, seqstatedate.state.toByteArray, seqstatedate.date))

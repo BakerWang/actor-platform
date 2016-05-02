@@ -67,7 +67,7 @@ final class SequenceServiceImpl(config: SequenceServiceConfig)(
       for {
         seqDelta ← seqDeltaFuture
         // FIXME: would new updates between getSeqState and getDifference break client state?
-        (updates, needMore) ← seqUpdExt.getDifference(client.userId, seq + seqDelta, client.authSid, maxDifferenceSize)
+        (updates, needMore) ← seqUpdExt.getDifference(client.userId, seq + seqDelta, client.authId, client.authSid, maxDifferenceSize)
         (diffUpdates, userIds, groupIds) = extractDiff(updates)
         (users, groups) ← getUsersGroups(userIds + client.userId, groupIds, optimizations)
 

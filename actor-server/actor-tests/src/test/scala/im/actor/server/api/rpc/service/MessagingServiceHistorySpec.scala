@@ -172,8 +172,8 @@ final class MessagingServiceHistorySpec extends BaseAppSuite with GroupsServiceH
 
     def public() = {
       val groupId = Random.nextInt
-      val (pubUser, _, authSid, _) = createUser()
-      val accessHash = whenReady(GroupExtension(system).create(groupId, pubUser.id, authSid, "Public group", Random.nextLong, Set.empty))(_.accessHash)
+      val (pubUser, authId, _, _) = createUser()
+      val accessHash = whenReady(GroupExtension(system).create(groupId, pubUser.id, authId, "Public group", Random.nextLong, Set.empty))(_.accessHash)
       whenReady(GroupExtension(system).makePublic(groupId, "Public group description"))(identity)
 
       val groupOutPeer = ApiGroupOutPeer(groupId, accessHash)

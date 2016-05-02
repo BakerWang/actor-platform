@@ -19,6 +19,7 @@ message SerializedUpdate {
 message UpdateMapping {
     SerializedUpdate default = 1;
     map<int32, SerializedUpdate> custom_obsolete = 2;
+    map<int64, SerializedUpdate> custom = 3;
 }
 
 message SeqUpdate {

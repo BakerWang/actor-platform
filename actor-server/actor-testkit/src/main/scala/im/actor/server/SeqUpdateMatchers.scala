@@ -178,7 +178,7 @@ trait SeqUpdateMatchers extends Matchers with ScalaFutures with AnyRefLogSource 
 
   private def findSeqUpdateAfter(seq: Int)(implicit client: ClientData): Future[Seq[SeqUpdate]] =
     SeqUpdatesExtension(system)
-      .getDifference(client.authData.get.userId, seq, client.authData.get.authSid, Long.MaxValue)
+      .getDifference(client.authData.get.userId, seq, client.authId, client.authData.get.authSid, Long.MaxValue)
       .map(_._1)(system.dispatcher)
 
   @tailrec

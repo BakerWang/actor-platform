@@ -39,7 +39,7 @@ trait HistoryHandlers {
 
   override def doHandleMessageRead(peer: ApiOutPeer, date: Long, clientData: ClientData): Future[HandlerResult[ResponseVoid]] = {
     authorized(clientData) { client ⇒
-      dialogExt.messageRead(peer.asPeer, client.userId, client.authSid, date) map (_ ⇒ Ok(ResponseVoid))
+      dialogExt.messageRead(peer.asPeer, client.userId, client.authId, date) map (_ ⇒ Ok(ResponseVoid))
     }
   }
 
@@ -141,7 +141,7 @@ trait HistoryHandlers {
   override def doHandleHideDialog(peer: ApiOutPeer, clientData: ClientData): Future[HandlerResult[ResponseDialogsOrder]] =
     authorized(clientData) { implicit client ⇒
       for {
-        seqstate ← dialogExt.archive(client.userId, peer.asModel, Some(client.authSid))
+        seqstate ← dialogExt.archive(client.userId, peer.asModel, Some(client.authId))
         groups ← dialogExt.fetchApiGroupedDialogs(client.userId)
       } yield Ok(ResponseDialogsOrder(seqstate.seq, seqstate.state.toByteArray, groups = groups))
     }
@@ -160,7 +160,7 @@ trait HistoryHandlers {
   ): Future[HandlerResult[ResponseSeq]] =
     authorized(clientData) { implicit client ⇒
       withOutPeer(peer) {
-        for (seqstate ← dialogExt.archive(client.userId, peer.asModel, Some(client.authSid)))
+        for (seqstate ← dialogExt.archive(client.userId, peer.asModel, Some(client.authId)))
           yield Ok(ResponseSeq(seqstate.seq, seqstate.state.toByteArray))
       }
     }

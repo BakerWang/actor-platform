@@ -22,10 +22,10 @@ private[group] sealed trait Commands extends UserAcl {
   implicit val ec: ExecutionContext
 
   def create(groupId: Int, title: String, randomId: Long, userIds: Set[Int])(implicit client: AuthorizedClientData): Future[CreateAck] =
-    create(groupId, client.userId, client.authSid, title, randomId, userIds)
+    create(groupId, client.userId, client.authId, title, randomId, userIds)
 
-  def create(groupId: Int, clientUserId: Int, clientAuthSid: Int, title: String, randomId: Long, userIds: Set[Int], typ: GroupType.ValueType = GroupType.General): Future[CreateAck] =
-    (processorRegion.ref ? Create(groupId, typ, clientUserId, clientAuthSid, title, randomId, userIds.toSeq)).mapTo[CreateAck]
+  def create(groupId: Int, clientUserId: Int, clientAuthId: Long, title: String, randomId: Long, userIds: Set[Int], typ: GroupType.ValueType = GroupType.General): Future[CreateAck] =
+    (processorRegion.ref ? Create(groupId, typ, clientUserId, clientAuthId, title, randomId, userIds.toSeq)).mapTo[CreateAck]
 
   def createInternal(groupId: Int, typ: GroupType.ValueType, creatorUserId: Int, title: String, userIds: Set[Int], isHidden: Boolean, isHistoryShared: Boolean): Future[CreateInternalAck] =
     (processorRegion.ref ? CreateInternal(groupId, typ, creatorUserId, title, userIds.toSeq, isHidden = Some(isHidden), isHistoryShared = Some(isHistoryShared))).mapTo[CreateInternalAck]
@@ -37,16 +37,16 @@ private[group] sealed trait Commands extends UserAcl {
     implicit
     client: AuthorizedClientData
   ): Future[SeqStateDate] =
-    (processorRegion.ref ? Leave(groupId, client.userId, client.authSid, randomId)).mapTo[SeqStateDate]
+    (processorRegion.ref ? Leave(groupId, client.userId, client.authId, randomId)).mapTo[SeqStateDate]
 
   def kickUser(groupId: Int, kickedUserId: Int, randomId: Long)(implicit client: AuthorizedClientData): Future[SeqStateDate] =
-    (processorRegion.ref ? Kick(groupId, kickedUserId, client.userId, client.authSid, randomId)).mapTo[SeqStateDate]
+    (processorRegion.ref ? Kick(groupId, kickedUserId, client.userId, client.authId, randomId)).mapTo[SeqStateDate]
 
-  def joinGroup(groupId: Int, joiningUserId: Int, joiningUserAuthSid: Int, invitingUserId: Int): Future[(SeqStateDate, Vector[Int], Long)] =
-    (processorRegion.ref ? Join(groupId, joiningUserId, joiningUserAuthSid, invitingUserId)).mapTo[(SeqStateDate, Vector[Int], Long)]
+  def joinGroup(groupId: Int, joiningUserId: Int, joiningUserAuthId: Long, invitingUserId: Int): Future[(SeqStateDate, Vector[Int], Long)] =
+    (processorRegion.ref ? Join(groupId, joiningUserId, joiningUserAuthId, invitingUserId)).mapTo[(SeqStateDate, Vector[Int], Long)]
 
-  def joinAfterFirstRead(groupId: Int, joiningUserId: Int, joiningUserAuthSid: Int): Future[Unit] =
-    (processorRegion.ref ? JoinAfterFirstRead(groupId, joiningUserId, joiningUserAuthSid)) map (_ ⇒ ())
+  def joinAfterFirstRead(groupId: Int, joiningUserId: Int, joiningUserAuthId: Long): Future[Unit] =
+    (processorRegion.ref ? JoinAfterFirstRead(groupId, joiningUserId, joiningUserAuthId)) map (_ ⇒ ())
 
   def inviteToGroup(groupId: Int, inviteeUserId: Int, randomId: Long)(implicit client: AuthorizedClientData): Future[SeqStateDate] =
     inviteToGroup(client.userId, groupId, inviteeUserId, randomId)

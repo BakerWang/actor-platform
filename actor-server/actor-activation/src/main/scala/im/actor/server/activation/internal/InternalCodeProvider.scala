@@ -75,7 +75,6 @@ private[activation] final class InternalCodeProvider(system: ActorSystem)
     DialogExtension(system).sendMessage(
       peer = userPeer,
       senderUserId = config.senderUserId,
-      senderAuthSid = 0,
       senderAuthId = None,
       randomId = ACLUtils.randomLong(),
       message = message,

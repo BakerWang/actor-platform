@@ -60,7 +60,6 @@ final class EchoBotSpec
     whenReady(dialogExt.sendMessage(
       peer = ApiPeer(ApiPeerType.Private, EchoBot.UserId),
       senderUserId = user.id,
-      senderAuthSid = authSid,
       senderAuthId = None,
       randomId = Random.nextLong(),
       message = ApiTextMessage("Hello", Vector.empty, None),
@@ -92,7 +91,6 @@ final class EchoBotSpec
     whenReady(dialogExt.sendMessage(
       peer = ApiPeer(ApiPeerType.Group, groupPeer.groupId),
       senderUserId = user.id,
-      senderAuthSid = authSid,
       senderAuthId = None,
       randomId = Random.nextLong(),
       message = ApiTextMessage("Hello", Vector.empty, None),

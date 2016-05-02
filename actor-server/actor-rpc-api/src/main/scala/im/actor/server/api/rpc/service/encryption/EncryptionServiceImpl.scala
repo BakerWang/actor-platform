@@ -148,14 +148,14 @@ final class EncryptionServiceImpl(implicit system: ActorSystem) extends Encrypti
                 val peersFu =
                   Future.sequence(peers map {
                     case (userId, mapping) ⇒
-                      updExt.deliverAuthIdMappedUpdate(userId, Some(UpdateEmptyUpdate), mapping.toMap)
+                      updExt.deliverMappedUpdate(userId, Some(UpdateEmptyUpdate), mapping)
                   })
 
                 for {
                   _ ← peersFu
                   seqstate ← ownOpt match {
                     case Some(own) ⇒
-                      updExt.deliverAuthIdMappedUpdate(client.userId, Some(UpdateEmptyUpdate), own)
+                      updExt.deliverMappedUpdate(client.userId, Some(UpdateEmptyUpdate), own)
                     case None ⇒ updExt.deliverSingleUpdate(client.userId, UpdateEmptyUpdate)
                   }
                 } yield Ok(ResponseSendEncryptedPackage(

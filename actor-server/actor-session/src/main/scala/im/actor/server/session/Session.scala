@@ -230,7 +230,7 @@ final private class Session(implicit config: SessionConfig, materializer: Materi
 
     this.authData = Some(AuthData(userId, authSid, appId))
 
-    updatesHandler ! UpdatesHandler.Authorize(userId, authSid)
+    updatesHandler ! UpdatesHandler.Authorize(userId)
 
     ackTo foreach (_ ! AuthorizeUserAck())
   }

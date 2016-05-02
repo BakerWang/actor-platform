@@ -37,7 +37,6 @@ final class ActorBotSpec
     whenReady(dialogExt.sendMessage(
       peer = ActorBot.ApiPeer,
       senderUserId = user.id,
-      senderAuthSid = authSid,
       senderAuthId = None,
       randomId = Random.nextLong(),
       message = ApiTextMessage("/bot new mybot MyBotName", Vector.empty, None),
@@ -68,7 +67,6 @@ final class ActorBotSpec
     whenReady(dialogExt.sendMessage(
       peer = ActorBot.ApiPeer,
       senderUserId = user.id,
-      senderAuthSid = authSid,
       senderAuthId = None,
       randomId = Random.nextLong(),
       message = ApiTextMessage("/bot new mybot MyBotName", Vector.empty, None),

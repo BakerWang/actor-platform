@@ -180,20 +180,20 @@ private[user] sealed trait Commands extends AuthCommands {
     pushText:   Option[String],
     isFat:      Boolean        = false,
     deliveryId: Option[String] = None
-  )(implicit client: AuthorizedClientData): Future[SeqState] = broadcastClientUpdate(client.userId, client.authSid, update, pushText, isFat, deliveryId)
+  )(implicit client: AuthorizedClientData): Future[SeqState] = broadcastClientUpdate(client.userId, client.authId, update, pushText, isFat, deliveryId)
 
   def broadcastClientUpdate(
-    clientUserId:  Int,
-    clientAuthSid: Int,
-    update:        Update,
-    pushText:      Option[String],
-    isFat:         Boolean,
-    deliveryId:    Option[String]
+    clientUserId: Int,
+    clientAuthId: Long,
+    update:       Update,
+    pushText:     Option[String],
+    isFat:        Boolean,
+    deliveryId:   Option[String]
   ): Future[SeqState] =
     seqUpdExt.deliverSingleUpdate(
       userId = clientUserId,
       update = update,
-      pushRules = PushRules(isFat = isFat, excludeAuthSids = Seq(clientAuthSid)).withData(PushData().withText(pushText.getOrElse(""))),
+      pushRules = PushRules(isFat = isFat, excludeAuthIds = Seq(clientAuthId)).withData(PushData().withText(pushText.getOrElse(""))),
       deliveryId = deliveryId.getOrElse("")
     )
 
@@ -204,18 +204,18 @@ private[user] sealed trait Commands extends AuthCommands {
     isFat:      Boolean        = false,
     deliveryId: Option[String] = None
   )(implicit client: AuthorizedClientData): Future[(SeqState, Seq[SeqState])] =
-    broadcastClientAndUsersUpdate(client.userId, client.authSid, userIds, update, pushText, isFat, deliveryId)
+    broadcastClientAndUsersUpdate(client.userId, client.authId, userIds, update, pushText, isFat, deliveryId)
 
   def broadcastClientAndUsersUpdate(
-    clientUserId:  Int,
-    clientAuthSid: Int,
-    userIds:       Set[Int],
-    update:        Update,
-    pushText:      Option[String],
-    isFat:         Boolean,
-    deliveryId:    Option[String]
+    clientUserId: Int,
+    clientAuthId: Long,
+    userIds:      Set[Int],
+    update:       Update,
+    pushText:     Option[String],
+    isFat:        Boolean,
+    deliveryId:   Option[String]
   ): Future[(SeqState, Seq[SeqState])] = {
-    val pushRules = PushRules(isFat = isFat).withData(PushData().withText(pushText.getOrElse("")))
+    val pushRules = PushRules(isFat = isFat).withData(PushData().withText(pushText.getOrElse(""))).withExcludeAuthIds(Seq(clientAuthId))
     val deliveryIdStr = deliveryId.getOrElse("")
 
     for {

@@ -35,10 +35,10 @@ final class DialogProcessorSpec extends BaseAppSuite
     val bobPeer = ApiPeer(ApiPeerType.Private, bob.id)
 
     def sendMessageToBob(text: String): Future[SeqStateDate] =
-      dialogExt.sendMessage(bobPeer, alice.id, aliceAuthSid, Some(aliceAuthId), ACLUtils.randomLong(), textMessage(text))
+      dialogExt.sendMessage(bobPeer, alice.id, Some(aliceAuthId), ACLUtils.randomLong(), textMessage(text))
 
     def sendMessageToAlice(text: String): Future[SeqStateDate] =
-      dialogExt.sendMessage(alicePeer, bob.id, bobAuthSid, Some(bobAuthId), ACLUtils.randomLong(), textMessage(text))
+      dialogExt.sendMessage(alicePeer, bob.id, Some(bobAuthId), ACLUtils.randomLong(), textMessage(text))
 
     val dateToAlice = whenReady(sendMessageToAlice("Hi"))(_.date)
     val dateToBob = whenReady(sendMessageToBob("Hi"))(_.date)
@@ -64,10 +64,10 @@ final class DialogProcessorSpec extends BaseAppSuite
     val bobPeer = ApiPeer(ApiPeerType.Private, bob.id)
 
     def sendMessageToBob(text: String): Future[SeqStateDate] =
-      dialogExt.sendMessage(bobPeer, alice.id, aliceAuthSid, Some(aliceAuthId), ACLUtils.randomLong(), textMessage(text))
+      dialogExt.sendMessage(bobPeer, alice.id, Some(aliceAuthId), ACLUtils.randomLong(), textMessage(text))
 
     def sendMessageToAlice(text: String): Future[SeqStateDate] =
-      dialogExt.sendMessage(alicePeer, bob.id, bobAuthSid, Some(bobAuthId), ACLUtils.randomLong(), textMessage(text))
+      dialogExt.sendMessage(alicePeer, bob.id, Some(bobAuthId), ACLUtils.randomLong(), textMessage(text))
 
     val toAlice = for (i ← 1 to 50) yield sendMessageToAlice(s"Hello $i")
     val toBob = for (i ← 1 to 50) yield sendMessageToBob(s"Hello you back $i")
@@ -110,10 +110,10 @@ final class DialogProcessorSpec extends BaseAppSuite
     val bobPeer = ApiPeer(ApiPeerType.Private, bob.id)
 
     def sendMessageToBob(text: String): Future[SeqStateDate] =
-      dialogExt.sendMessage(bobPeer, alice.id, aliceAuthSid, Some(aliceAuthId), ACLUtils.randomLong(), textMessage(text))
+      dialogExt.sendMessage(bobPeer, alice.id, Some(aliceAuthId), ACLUtils.randomLong(), textMessage(text))
 
     def sendMessageToAlice(text: String): Future[SeqStateDate] =
-      dialogExt.sendMessage(alicePeer, bob.id, bobAuthSid, Some(bobAuthId), ACLUtils.randomLong(), textMessage(text))
+      dialogExt.sendMessage(alicePeer, bob.id, Some(bobAuthId), ACLUtils.randomLong(), textMessage(text))
 
     val toAlice = for (i ← 1 to 50) yield sendMessageToAlice(s"Hello $i")
     val toBob = for (i ← 1 to 50) yield sendMessageToBob(s"Hello you back $i")

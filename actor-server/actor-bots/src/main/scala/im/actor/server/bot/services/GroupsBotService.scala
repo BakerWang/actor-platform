@@ -28,7 +28,7 @@ private[bot] final class GroupsBotService(system: ActorSystem) extends BotServic
         ack ← groupExt.create(
           groupId = groupId,
           clientUserId = botUserId,
-          clientAuthSid = 0,
+          clientAuthId = 0L,
           title = title,
           randomId = randomId,
           userIds = Set.empty
